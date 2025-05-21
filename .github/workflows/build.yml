@@ -14,29 +14,30 @@ jobs:
         arch: [x86_64, mipsle_24kc, aarch64_cortex-a53]
 
     steps:
-    - name: Checkout repo
-      uses: actions/upload-artifact@v3
-
-
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set SDK URL based on architecture
       id: sdk
       run: |
         case ${{ matrix.arch }} in
           x86_64)
-            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            SDK_URL="https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.2.0_musl.Linux-x86_64.tar.xz"
             ;;
           mipsle_24kc)
-            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/ar71xx/generic/openwrt-sdk-23.05.3-ar71xx-generic_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            SDK_URL="https://downloads.openwrt.org/releases/23.05.3/targets/ar71xx/generic/openwrt-sdk-23.05.3-ar71xx-generic_gcc-12.2.0_musl.Linux-x86_64.tar.xz"
             ;;
           aarch64_cortex-a53)
-            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/64bit/openwrt-sdk-23.05.3-armvirt-64bit_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            SDK_URL="https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/64bit/openwrt-sdk-23.05.3-armvirt-64bit_gcc-12.2.0_musl.Linux-x86_64.tar.xz"
             ;;
           *)
-            echo "Unsupported arch"
+            echo "Unsupported architecture"
             exit 1
             ;;
         esac
+        echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
 
     - name: Download and extract OpenWrt SDK
       run: |
@@ -66,7 +67,7 @@ jobs:
         cd $SDK_DIR
         make package/luci-app-ccleaner/compile V=s
 
-    - name: Upload ipk artifact
+    - name: Upload IPK artifact
       uses: actions/upload-artifact@v3
       with:
         name: luci-app-ccleaner-${{ matrix.arch }}-ipk
