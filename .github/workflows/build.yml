@@ -1,0 +1,71 @@
+name: Build luci-app-ccleaner
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86_64, mipsle_24kc, aarch64_cortex-a53]
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set SDK URL based on architecture
+      id: sdk
+      run: |
+        case ${{ matrix.arch }} in
+          x86_64)
+            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            ;;
+          mipsle_24kc)
+            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/ar71xx/generic/openwrt-sdk-23.05.3-ar71xx-generic_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            ;;
+          aarch64_cortex-a53)
+            echo "SDK_URL=https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/64bit/openwrt-sdk-23.05.3-armvirt-64bit_gcc-12.2.0_musl.Linux-x86_64.tar.xz" >> $GITHUB_ENV
+            ;;
+          *)
+            echo "Unsupported arch"
+            exit 1
+            ;;
+        esac
+
+    - name: Download and extract OpenWrt SDK
+      run: |
+        wget $SDK_URL -O openwrt-sdk.tar.xz
+        tar -xf openwrt-sdk.tar.xz
+        SDK_DIR=$(ls -d openwrt-sdk-*)
+        echo "SDK_DIR=$SDK_DIR" >> $GITHUB_ENV
+
+    - name: Copy package to SDK
+      run: |
+        cp -r ./ $SDK_DIR/package/luci-app-ccleaner
+
+    - name: Update feeds and install luci
+      run: |
+        cd $SDK_DIR
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Configure package
+      run: |
+        cd $SDK_DIR
+        echo "CONFIG_PACKAGE_luci-app-ccleaner=y" >> .config
+        echo "CONFIG_PACKAGE_luci=y" >> .config
+
+    - name: Build luci-app-ccleaner package
+      run: |
+        cd $SDK_DIR
+        make package/luci-app-ccleaner/compile V=s
+
+    - name: Upload ipk artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: luci-app-ccleaner-${{ matrix.arch }}-ipk
+        path: ${{ env.SDK_DIR }}/bin/packages/*/*/luci-app-ccleaner*.ipk
