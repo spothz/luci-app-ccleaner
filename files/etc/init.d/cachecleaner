@@ -1,0 +1,45 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+start() {
+    enabled=$(uci get cachecleaner.settings.enabled 2>/dev/null)
+    if [ "$enabled" = "1" ]; then
+        interval=$(uci get cachecleaner.settings.interval 2>/dev/null)
+        case "$interval" in
+            daily)
+                echo "0 3 * * * /usr/bin/clear_cache.sh" > /etc/crontabs/root
+                ;;
+            weekly)
+                echo "0 3 * * 0 /usr/bin/clear_cache.sh" > /etc/crontabs/root
+                ;;
+            monthly)
+                echo "0 3 1 * * /usr/bin/clear_cache.sh" > /etc/crontabs/root
+                ;;
+            *)
+                ;;
+        esac
+        /etc/init.d/cron restart
+    else
+        sed -i '/\/usr\/bin\/clear_cache.sh/d' /etc/crontabs/root
+        /etc/init.d/cron restart
+    fi
+}
+
+stop() {
+    sed -i '/\/usr\/bin\/clear_cache.sh/d' /etc/crontabs/root
+    /etc/init.d/cron restart
+}
+
+enable() {
+    uci set cachecleaner.settings.enabled='1'
+    uci commit cachecleaner
+    $0 start
+}
+
+disable() {
+    uci set cachecleaner.settings.enabled='0'
+    uci commit cachecleaner
+    $0 stop
+}
