@@ -65,7 +65,7 @@ jobs:
         make package/luci-app-ccleaner/compile V=s
 
     - name: Upload ipk artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3.2.0
       with:
         name: luci-app-ccleaner-${{ matrix.arch }}-ipk
         path: ${{ env.SDK_DIR }}/bin/packages/*/*/luci-app-ccleaner*.ipk
